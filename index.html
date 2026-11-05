@@ -1651,7 +1651,7 @@ async function ownerFinishExpired(i,p,a){
       root.closed_sessions=root.closed_sessions||{};
       const alreadyClosed=!!(sid&&root.closed_sessions[sid]);
       const cleared=blankRemoteActive(r);
-      cleared.cleanup=true;cleared.cleanupUntil=now+20000;cleared.sessionId=sid;
+      cleared.cleanup=false;cleared.cleanupUntil=0;cleared.sessionId='';cleared.expiredSessionId=sid;cleared.powerUnverified=true;
       rootWriteActive(root,p,i,cleared);
       const ss=freshSessionSnapshotFromRoot(root);
       if(!alreadyClosed&&!r.bonusOnly)ss.count=Math.max(0,Number(ss.count)||0)+1;
@@ -1662,22 +1662,10 @@ async function ownerFinishExpired(i,p,a){
     },undefined,false);
     if(!result||!result.committed)return;
     if(result.snapshot&&typeof result.snapshot.val==='function')DB._cache=result.snapshot.val()||DB._cache;
-    // V34 : priorité au OFF physique ; les animations et journaux viennent après.
-    try{
-      // V34 : lecture ciblée pour éviter de charger tout l'historique avant OFF.
-      const live=(await fbRoot.child('active_by_poste').child(remotePostKey(p.num)).once('value')).val()||{};
-      if(!live.actif&&live.cleanup&&live.sessionId===sid&&Date.now()<Number(live.cleanupUntil||0)){
-        if(p.devid){const off=await ownerTuyaCommand(p,false);if(!off)setStatusP('⚠️ '+p.num+' LIBRE mais OFF non confirmé dans Smart Life','danger');}
-      }
-    }catch(e){console.warn('OFF après clôture Patron:',e);}
+    // Session closed; no delayed OFF command may affect the next client.
     renderControl();renderHome();
     ownerSpeak('Temps terminé pour '+ownerSpeechPosteName(p.num)+'.');
     ownerPersistActivity(p.num+' — Temps écoulé',(a.client||'Client')+' · fin automatique',money(a.montantSession)+' F',{poste:p.num,client:a.client||'',sessionId:sid,typeActivite:'terminee_auto',tempsRestantSec:0,montant:money(a.montantSession)});
-    try{await fbRoot.transaction(root=>{
-      root=root||{};const live=rootReadActive(root,p,i)||{};
-      if(live.actif||!live.cleanup||live.sessionId!==sid)return undefined;
-      rootWriteActive(root,p,i,{...live,cleanup:false,cleanupUntil:0,sessionId:'',updatedAt:Date.now()});return root;
-    },undefined,false);}catch(e){console.warn('Libération nettoyage Patron:',e);}
   }catch(e){console.warn('Fin Patron:',e);}finally{ownerFinishLocks.delete(key);}
 }
 
@@ -2602,3 +2590,4 @@ window.GymProofFree=(function(){
 </script>
 </body>
 </html>
+
