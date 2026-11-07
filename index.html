@@ -1008,20 +1008,23 @@ function ownerPersistActivity(main,detail,amount,meta={}){
 
 
 // V21: une commande Tuya n'est validée que si switch_1 confirme le vrai état.
-async function ownerReadSwitch(poste){
+async function gzBoundedFetch(url,options,budget=7000){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),budget);try{const r=await fetch(url,{...options,signal:controller.signal});const data=await r.json();return {ok:r.ok,status:r.status,json:async()=>data};}finally{clearTimeout(timer);}}
+async function ownerReadSwitch(poste,budget=2500){
   if(!poste||!poste.devid||!currentTenantKey)return null;
   const user=firebase.auth().currentUser;if(!user)return null;
   const token=await user.getIdToken();
-  const r=await fetch(TUYA_WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
-   body:JSON.stringify({tenantKey:currentTenantKey,action:'status',devid:poste.devid}),cache:'no-store'});
+  const r=await gzBoundedFetch(TUYA_WORKER_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},
+   body:JSON.stringify({tenantKey:currentTenantKey,action:'status',devid:poste.devid}),cache:'no-store'},budget);
   const d=await r.json().catch(()=>({}));
   if(!r.ok||!d.success||!d.device)return null;
   return d.device.online===true&&typeof d.device.switchOn==='boolean'?d.device.switchOn:null;
 }
 async function ownerVerifySwitch(poste,expected){
+  const deadline=Date.now()+8000;
   for(let i=0;i<5;i++){
     if(i)await new Promise(r=>setTimeout(r,550));
-    try{if(await ownerReadSwitch(poste)===expected)return true;}catch(e){console.log('Etat Tuya:',e);}
+    if(Date.now()>=deadline)return false;
+    try{if(await ownerReadSwitch(poste,Math.max(1,Math.min(2500,deadline-Date.now())))===expected)return true;}catch(e){console.log('Etat Tuya:',e);}
   }
   return false;
 }
@@ -1032,7 +1035,7 @@ async function ownerTuyaCommand(poste,turnOn){
     const user=firebase.auth().currentUser;
     if(!user) throw new Error('Session Firebase absente');
     const idToken=await user.getIdToken();
-    const r=await fetch(TUYA_WORKER_URL,{
+    const r=await gzBoundedFetch(TUYA_WORKER_URL,{
       method:'POST',
       headers:{
         'Content-Type':'application/json',
@@ -1042,7 +1045,7 @@ async function ownerTuyaCommand(poste,turnOn){
     });
     const d=await r.json();
     if(!r.ok||!d.success){console.log('Tuya patron refusé:',d);return false;}
-    const confirmed=await ownerVerifySwitch(poste,turnOn);
+    const confirmed=(d.device?.online===true && d.device?.switchOn===turnOn) || await ownerVerifySwitch(poste,turnOn);
     if(confirmed&&turnOn)ownerClearOff(poste);
     return confirmed;
   }catch(e){console.log('Tuya patron:',e);return false;}
@@ -2588,6 +2591,8 @@ window.GymProofFree=(function(){
 })();
 
 </script>
+<script src="./click-feedback.js?v=20261107-1"></script>
 </body>
 </html>
+
 
