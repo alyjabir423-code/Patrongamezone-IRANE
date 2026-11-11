@@ -3,6 +3,20 @@
   'use strict';
   const copy = x => x == null ? x : JSON.parse(JSON.stringify(x));
   const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+  // GZ-CF-READ-1: fixed origin per room; failed streams fall back to Firebase.
+  const gateways = {
+    'https://gamezone-bah-nouveau-default-rtdb.europe-west1.firebasedatabase.app': 'https://gamezone-cp1-lectures.bahmamadou4234.workers.dev',
+    'https://gamzone-youssef-7e8ae-default-rtdb.firebaseio.com': 'https://gamezone-youssef-lectures.bahmamadou4234.workers.dev',
+    'https://game-zone-bah-default-rtdb.europe-west1.firebasedatabase.app': 'https://gamezone-imranne-lectures.bahmamadou4234.workers.dev'
+  };
+  let directUntil = 0;
+  function streamUrl(value) {
+    const url = new URL(value);
+    const gateway = gateways[url.origin];
+    if (!gateway || Date.now() < directUntil) return { url, gateway: false };
+    return { url: new URL('/db' + url.pathname + url.search, gateway), gateway: true };
+  }
+
   function segments(path) {
     if (typeof path !== 'string' || !path.startsWith('/')) throw Error('Chemin du flux invalide');
     const parts = path.split('/').filter(Boolean);
@@ -38,7 +52,7 @@
     let stopped = false, source = null, generation = 0, version = 0;
     let value = null, ready = false, live = false, lastEvent = 0, readPromise = null;
     let retry = null, fallback = null, opening = false, failures = 0, readFailures = 0, renewAuth = false;
-    const stats = { streamEvents: 0, restReads: 0, receivedChars: 0 };
+    const stats = { streamEvents: 0, restReads: 0, receivedChars: 0, gatewayStarts: 0, directStarts: 0 };
     const visible = () => !w.document || w.document.visibilityState !== 'hidden';
     const enabled = () => !c.enabled || c.enabled();
     function report(e) { if (!stopped && c.error) c.error(e); }
@@ -93,8 +107,10 @@
         renewAuth = false;
         if (stopped || current !== generation) return;
         if (!token) throw Error('Connexion Firebase requise');
-        const url = new URL(c.url);
+        const transport = streamUrl(c.url);
+        const url = transport.url;
         url.searchParams.set('auth', token);
+        stats[transport.gateway ? 'gatewayStarts' : 'directStarts']++;
         const s = source = new w.EventSource(url.toString());
         let initialized = false;
         function receive(kind, event) {
@@ -114,7 +130,7 @@
         s.addEventListener('keep-alive', () => { if (source === s) lastEvent = Date.now(); });
         s.addEventListener('cancel', () => { if (source === s) { report(Error('Accès au flux Firebase refusé')); reconnect(); } });
         s.addEventListener('auth_revoked', () => { if (source === s) { renewAuth = true; reconnect(); } });
-        s.onerror = () => { if (source === s) reconnect(); };
+        s.onerror = () => { if (source === s) { if (transport.gateway) directUntil = Date.now() + 60000; reconnect(); } };
         scheduleRead(2500);
       } catch (e) { report(e); reconnect(); }
       finally { opening = false; }
@@ -222,3 +238,4 @@
   }
   w.GZQuotaSync = { subscribe, manager, apply };
 })(window);
+

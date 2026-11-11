@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<script src="./firebase-quota-sync.js?v=quota-r1-20261111"></script>
+<script src="./firebase-quota-sync.js?v=cloudflare-read-1-20261111"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0a0f1e">
@@ -3273,6 +3273,7 @@ const activeAutoY=activeForPoste;activeForPoste=function(p,i){return IMRANNERela
 <script src="./imranne-expiry.js?v=imranne-publication-v12-20261110"></script>
 <script>document.title='GameZone IMRANNE — Patron';const version=document.getElementById('gz-build-version');if(version)version.textContent='IMRANNE V12 · relais 2.4 · référence CP1 adaptée';</script><script>(function(){for(const [name,label]of [['ownerPause','Pause'],['ownerResume','Reprise'],['pausePoste','Pause'],['reprendrePoste','Reprise'],['imranneSaveTime','Sauvegarde'],['imranneRestoreTime','Restauration']]){const original=window[name];if(typeof original!=='function')continue;window[name]=async function(...args){if(name==='pausePoste'&&args[1]===true)return original.apply(this,args);const timing=IMRANNERelay.beginTiming(label);try{return await original.apply(this,args);}finally{IMRANNERelay.endTiming(timing);}};}})();</script><script>(function(){for(const name of ['gymConfirmStartP','gymConfirmCancelP']){const original=window[name];window[name]=async function(...args){const timing=IMRANNERelay.beginTiming(name.includes('Cancel')?'Annulation Gym':'Démarrage Gym');try{return await original.apply(this,args);}finally{IMRANNERelay.endTiming(timing);}};}})();</script><script>const quotaVersion=document.getElementById('gz-build-version');if(quotaVersion)quotaVersion.textContent+=' · QUOTA Q1 · PORTAGE R1 — CANDIDAT À VALIDER';</script><script>const r1Version=document.getElementById('gz-build-version');if(r1Version)r1Version.textContent+=' · QUOTA Q1 · CORRECTIF TEMPS R1';</script></body>
 </html>
+
 
 
 
