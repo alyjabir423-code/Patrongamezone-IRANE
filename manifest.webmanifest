@@ -1,10 +1,10 @@
 {
-  "name": "GameZone Patron V35",
-  "short_name": "GZ Patron",
+  "name": "GameZone IMRANNE — Patron",
+  "short_name": "IMRANNE Patron",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#0d0d1a",
-  "theme_color": "#0d0d1a",
-  "description": "GameZone Patron V35 — chargement initial allégé, voix après confirmation, cartes alignées"
+  "background_color": "#140e20",
+  "theme_color": "#21152e",
+  "description": "GameZone IMRANNE · six prises · relais Firebase"
 }
